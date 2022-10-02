@@ -1,13 +1,14 @@
-import { ghAuthenticate } from "./github.ts";
+import { ghPushUpdates, pullUpdates } from "./github.ts";
 import { getConfig } from "./config.ts";
+import { debounce } from "https://deno.land/std@0.144.0/async/debounce.ts?s=debounce";
 
-// const watcher = Deno.watchFs(".");
-// for await (const event of watcher) {
-//   if (event.kind === "modify") {
-//     // git add and sync
-//   }
-// }
+const { watchDir } = getConfig();
 
-const config = getConfig();
+pullUpdates();
 
-ghAuthenticate(config.ghToken);
+for await (const event of Deno.watchFs(watchDir)) {
+  // on modify or file created event update if file is a markdown file
+  if (event.paths[0].endsWith(".md")) {
+    debounce(ghPushUpdates, 200)();
+  }
+}
